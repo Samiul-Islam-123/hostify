@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
-  Button, 
   Grid, 
   Paper, 
   Table, 
@@ -34,6 +33,7 @@ import {
 import { styled } from '@mui/material/styles';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import DashboardRouter from './DashboardRouter';
+import NewResourceButton from '../../components/NewResourceButton'; // Import the new component
 
 // Create styled components to match the dark theme in the image
 const StyledDrawer = styled(Drawer)(({ theme, open, isMobile }) => ({
@@ -131,6 +131,13 @@ function DashboardFrame() {
     }
   };
 
+  const handleNewResourceSelect = (option) => {
+    // Handle the selected option here
+    console.log(`Selected option: ${option}`);
+    // You might want to navigate to a creation page based on the option
+    // navigate(`/dashboard/create/${option}`);
+  };
+
   // Mock deployment data
   const deployments = [
     { name: 'frontend', type: 'Frontend', status: 'Running' },
@@ -155,70 +162,18 @@ function DashboardFrame() {
     { text: 'Settings', icon: <SettingsIcon />, route: '/dashboard/settings', value: 'settings' }
   ];
 
-  // Drawer content
-  const drawerContent = (
-    <>
-      <Box sx={{ 
-        p: 2, 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: open ? 'space-between' : 'center'
-      }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <PlayArrowIcon sx={{ color: '#8957ff' }} />
-          {open && (
-            <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
-              Hostify
-            </Typography>
-          )}
-        </Box>
-        <IconButton 
-          onClick={handleDrawerToggle} 
-          sx={{ 
-            color: 'white',
-            display: isMobile ? 'none' : 'flex'
-          }}
-        >
-          {open ? <ChevronLeftIcon /> : <MenuIcon />}
-        </IconButton>
-      </Box>
-      <Divider sx={{ backgroundColor: '#30363d', my: 1 }} />
-      <List style={{
-        cursor : "pointer"
-      }}>
-        {navItems.map((item) => (
-          <StyledListItem 
-            key={item.text}
-            button
-            onClick={() => {
-              navigate(item.route);
-              setActiveRoute(item.value);
-            }}
-            className={activeRoute === item.value ? 'active' : ''}
-            open={open}
-          >
-            <ListItemIcon sx={{ minWidth: open ? 40 : 0, color: 'white' }}>
-              {item.icon}
-            </ListItemIcon>
-            {(open || isMobile) && <ListItemText primary={item.text} />}
-          </StyledListItem>
-        ))}
-      </List>
-      <Box sx={{ 
-        position: 'absolute', 
-        bottom: 16, 
-        left: open ? 16 : '50%', 
-        transform: open ? 'none' : 'translateX(-50%)' 
-      }}>
-        <IconButton sx={{ color: 'white' }}>
-          <HelpIcon />
-        </IconButton>
-      </Box>
-    </>
-  );
-
   return (
     <Box sx={{ display: 'flex', backgroundColor: '#121212', color: 'white', height: '100vh', width: '100vw' }}>
+      {/* New Resource Button - Fixed positioning at extreme right */}
+      <Box sx={{ 
+        position: 'fixed',
+        top: 16,
+        right: 24,
+        zIndex: 1300
+      }}>
+        <NewResourceButton onOptionSelect={handleNewResourceSelect} />
+      </Box>
+
       {/* Mobile Drawer */}
       {isMobile && (
         <>
@@ -247,7 +202,49 @@ function DashboardFrame() {
               keepMounted: true, // Better open performance on mobile
             }}
           >
-            {drawerContent}
+            {/* Drawer content */}
+            <Box sx={{ 
+              p: 2, 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between'
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <PlayArrowIcon sx={{ color: '#8957ff' }} />
+                <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
+                  Hostify
+                </Typography>
+              </Box>
+            </Box>
+            <Divider sx={{ backgroundColor: '#30363d', my: 1 }} />
+            <List style={{ cursor: "pointer" }}>
+              {navItems.map((item) => (
+                <StyledListItem 
+                  key={item.text}
+                  button
+                  onClick={() => {
+                    navigate(item.route);
+                    setActiveRoute(item.value);
+                  }}
+                  className={activeRoute === item.value ? 'active' : ''}
+                  open={true}
+                >
+                  <ListItemIcon sx={{ minWidth: 40, color: 'white' }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText primary={item.text} />
+                </StyledListItem>
+              ))}
+            </List>
+            <Box sx={{ 
+              position: 'absolute', 
+              bottom: 16, 
+              left: 16
+            }}>
+              <IconButton sx={{ color: 'white' }}>
+                <HelpIcon />
+              </IconButton>
+            </Box>
           </StyledDrawer>
         </>
       )}
@@ -255,12 +252,62 @@ function DashboardFrame() {
       {/* Desktop Drawer */}
       {!isMobile && (
         <StyledDrawer variant="permanent" open={open} isMobile={false}>
-          {drawerContent}
+          <Box sx={{ 
+            p: 2, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between'
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <PlayArrowIcon sx={{ color: '#8957ff' }} />
+              {open && (
+                <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
+                  Hostify
+                </Typography>
+              )}
+            </Box>
+            <IconButton 
+              onClick={handleDrawerToggle} 
+              sx={{ color: 'white' }}
+            >
+              {open ? <ChevronLeftIcon /> : <MenuIcon />}
+            </IconButton>
+          </Box>
+          <Divider sx={{ backgroundColor: '#30363d', my: 1 }} />
+          <List style={{ cursor: "pointer" }}>
+            {navItems.map((item) => (
+              <StyledListItem 
+                key={item.text}
+                button
+                onClick={() => {
+                  navigate(item.route);
+                  setActiveRoute(item.value);
+                }}
+                className={activeRoute === item.value ? 'active' : ''}
+                open={open}
+              >
+                <ListItemIcon sx={{ minWidth: open ? 40 : 0, color: 'white' }}>
+                  {item.icon}
+                </ListItemIcon>
+                {open && <ListItemText primary={item.text} />}
+              </StyledListItem>
+            ))}
+          </List>
+          <Box sx={{ 
+            position: 'absolute', 
+            bottom: 16, 
+            left: open ? 16 : '50%', 
+            transform: open ? 'none' : 'translateX(-50%)' 
+          }}>
+            <IconButton sx={{ color: 'white' }}>
+              <HelpIcon />
+            </IconButton>
+          </Box>
         </StyledDrawer>
       )}
 
       {/* Main content */}
-      <Box sx={{ marginTop : "24px", width: '100%', backgroundColor: '#121212', minHeight: '97vh' }}>
+      <Box sx={{ marginTop: "24px", width: '100%', backgroundColor: '#121212', minHeight: '97vh' }}>
         <DashboardRouter />
       </Box>
     </Box>
