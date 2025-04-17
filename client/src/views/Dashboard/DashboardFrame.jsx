@@ -134,6 +134,7 @@ function DashboardFrame() {
   const handleNewResourceSelect = (option) => {
     // Handle the selected option here
     console.log(`Selected option: ${option}`);
+    navigate(`/create/${option}`)
     // You might want to navigate to a creation page based on the option
     // navigate(`/dashboard/create/${option}`);
   };
