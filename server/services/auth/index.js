@@ -2,7 +2,7 @@ const express = require('express');
 const Logger = require('../../utils/Logger');
 const getIPAddress = require('../../utils/IP');
 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5501;
 const app = express();
 const logger = new Logger();
 
