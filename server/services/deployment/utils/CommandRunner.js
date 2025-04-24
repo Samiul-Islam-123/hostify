@@ -19,7 +19,7 @@ const RunCommand = async (command, args, cwd, options = {}) => {
 
         const child = spawn(command, args, {
             cwd,
-            
+            shell : true,
             env: process.env
         });
 
