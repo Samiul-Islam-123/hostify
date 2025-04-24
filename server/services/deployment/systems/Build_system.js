@@ -1,0 +1,1 @@
+// builds the application in separate docker container
