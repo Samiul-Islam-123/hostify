@@ -30,6 +30,17 @@ fi
 echo "[INFO] Running build..."
 npm run build
 
+# Copy build output
 echo "[INFO] Copying build output..."
 mkdir -p "$OUTPUT_DIR"
-cp -r dist/* "$OUTPUT_DIR" 2>/dev/null || cp -r build/* "$OUTPUT_DIR"
+
+if [ -d "dist" ]; then
+  cp -r dist/* "$OUTPUT_DIR"
+elif [ -d "build" ]; then
+  cp -r build/* "$OUTPUT_DIR"
+else
+  echo "[ERROR] Neither dist nor build folder exists, skipping copy"
+  exit 1
+fi
+
+echo "[INFO] Build output successfully copied to $OUTPUT_DIR"

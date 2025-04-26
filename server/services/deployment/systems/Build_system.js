@@ -119,3 +119,32 @@ async function buildProject({ repoUrl, username, project, env = {}, logger , roo
 }
 
 module.exports = { runDockerBuild, buildProject };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// docker run --rm \
+//     -v /tmp/Samiul-Islam-123/RepoDocs:/app \
+//     -v /output/Samiul-Islam-123/RepoDocs:/output/RepoDocs \
+//     deployment-builder \
+//     https://github.com/Samiul-Islam-123-RepoDocs.git \
+//     /output/RepoDocs \
+//     '{"envVariable1":"value1", "envVariable2":"value2"}' \
+//     /client
