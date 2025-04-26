@@ -1,80 +1,121 @@
-// builds the application in separate docker container using spawn
-
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
 
-function extractRepoInfo(repoUrl) {
-    const parts = repoUrl.replace('.git', '').split('/');
-    return [parts[parts.length - 2], parts[parts.length - 1]];
-}
-
-function buildProject(repoUrl, env, logger) {
+async function runDockerBuild({ repoUrl, username, project, env = {}, logger }) {
     return new Promise((resolve, reject) => {
-        const [username, project] = extractRepoInfo(repoUrl);
-        const outputTempPath = path.join('/output', username, project);
+        const repoFolder = path.join('/tmp', username, project);
+        const outputFolder = path.join('/output', username, project);
         const finalDestination = path.join('/var/www', username, project);
 
-        // Ensure temp output path exists
-        fs.mkdirSync(outputTempPath, { recursive: true });
+        // Ensure output and repo directories exist
+        fs.mkdirSync(outputFolder, { recursive: true });
+        fs.mkdirSync(repoFolder, { recursive: true });
 
-        // Clone or pull repo
-        const repoPath = path.join('/tmp', username, project);
-        const cloneOrPull = fs.existsSync(repoPath)
-            ? `git -C ${repoPath} pull`
-            : `git clone ${repoUrl} ${repoPath}`;
-
-        exec(cloneOrPull, (err, stdout, stderr) => {
-            if (err) {
-                logger.error(`Git error: ${stderr}`);
-                return reject(new Error('Git failed'));
-            }
-
-            logger.info(`Git success: ${stdout}`);
-            runDockerBuild(repoPath, outputTempPath, repoUrl, env, logger)
-                .then(() => {
-                    // After build, copy to /var/www
-                    fs.mkdirSync(finalDestination, { recursive: true });
-                    exec(`cp -r ${outputTempPath}/* ${finalDestination}`, (err) => {
-                        if (err) {
-                            logger.error(`Copy failed: ${err.message}`);
-                            return reject(new Error('Failed to copy build files'));
-                        }
-                        logger.info('Copied build files to /var/www successfully');
-                        resolve(finalDestination);
-                    });
-                })
-                .catch(reject);
-        });
-    });
-}
-
-function runDockerBuild(repoPath, outputPath, repoUrl, env, logger) {
-    return new Promise((resolve, reject) => {
-        const escapedEnv = env ? JSON.stringify(env).replace(/"/g, '\\"') : '';
+        const escapedEnv = JSON.stringify(env).replace(/"/g, '\\"');
 
         const args = [
             'run', '--rm',
-            '-v', `${repoPath}:/app`,
-            '-v', `${outputPath}:/output/${path.basename(repoPath)}`,
+            '-v', `${repoFolder}:/app`,
+            '-v', `${outputFolder}:/output/${project}`,
             'deployment-builder',
             repoUrl,
-            `/output/${path.basename(repoPath)}`,
+            `/output/${project}`,
             escapedEnv
         ];
 
-        logger.info(`Spawning Docker to build ${repoUrl}...`);
+        logger.info(`Running Docker build for ${repoUrl}...`);
         const dockerProcess = spawn('docker', args);
 
-        dockerProcess.stdout.on('data', data => logger.info(`[stdout] ${data}`));
-        dockerProcess.stderr.on('data', data => logger.error(`[stderr] ${data}`));
+        dockerProcess.stdout.on('data', (data) => {
+            logger.info(`[docker stdout] ${data.toString().trim()}`);
+        });
 
-        dockerProcess.on('close', code => {
-            code === 0 ? resolve() : reject(new Error(`Docker exited with code ${code}`));
+        dockerProcess.stderr.on('data', (data) => {
+            logger.error(`[docker stderr] ${data.toString().trim()}`);
+        });
+
+        dockerProcess.on('close', (code) => {
+            if (code !== 0) {
+                return reject(new Error(`Docker build failed with exit code ${code}`));
+            }
+
+            logger.info('Docker build completed. Moving build files...');
+
+            // Create /var/www/username/project if it doesn't exist
+            fs.mkdirSync(finalDestination, { recursive: true });
+
+            // Copy everything from outputFolder to /var/www/username/project
+            exec(`cp -r ${outputFolder}/* ${finalDestination}`, (err) => {
+                if (err) {
+                    logger.error(`Failed to copy files to /var/www: ${err.message}`);
+                    return reject(new Error('Failed to move build files'));
+                }
+
+                logger.info(`Project deployed to /var/www/${username}/${project}`);
+                resolve(finalDestination);
+            });
         });
     });
 }
 
+async function buildProject({ repoUrl, username, project, env = {}, logger , rootDir}){
+    return new Promise((resolve, reject) => {
+        const repoFolder = path.join('/tmp', username, project);
+        const outputFolder = path.join('/output', username, project);
+        const finalDestination = path.join('/var/www', username, project);
 
-module.exports = { buildProject };
+        // Ensure output and repo directories exist
+        fs.mkdirSync(outputFolder, { recursive: true });
+        fs.mkdirSync(repoFolder, { recursive: true });
+
+        const escapedEnv = JSON.stringify(env).replace(/"/g, '\\"');
+
+        const args = [
+            'run', '--rm',
+            '-v', `${repoFolder}:/app`,
+            '-v', `${outputFolder}:/output/${project}`,
+            'deployment-builder',
+            repoUrl,
+            `/output/${project}`,
+            escapedEnv,
+            rootDir
+        ];
+
+        logger.info(`Running Docker build for ${repoUrl}...`);
+        const dockerProcess = spawn('docker', args);
+
+        dockerProcess.stdout.on('data', (data) => {
+            logger.info(`[docker stdout] ${data.toString().trim()}`);
+        });
+
+        dockerProcess.stderr.on('data', (data) => {
+            logger.error(`[docker stderr] ${data.toString().trim()}`);
+        });
+
+        dockerProcess.on('close', (code) => {
+            if (code !== 0) {
+                return reject(new Error(`Docker build failed with exit code ${code}`));
+            }
+
+            logger.info('Docker build completed. Moving build files...');
+
+            // Create /var/www/username/project if it doesn't exist
+            fs.mkdirSync(finalDestination, { recursive: true });
+
+            // Copy everything from outputFolder to /var/www/username/project
+            exec(`cp -r ${outputFolder}/* ${finalDestination}`, (err) => {
+                if (err) {
+                    logger.error(`Failed to copy files to /var/www: ${err.message}`);
+                    return reject(new Error('Failed to move build files'));
+                }
+
+                logger.info(`Project deployed to /var/www/${username}/${project}`);
+                resolve(finalDestination);
+            });
+        });
+    });
+}
+
+module.exports = { runDockerBuild, buildProject };

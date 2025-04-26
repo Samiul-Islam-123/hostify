@@ -4,10 +4,20 @@
 REPO_URL=$1
 OUTPUT_DIR=$2
 ENV=$3
+ROOT_DIR=$4
+
+# Clean any old repo
+echo "[INFO] cleaning old repo"
+rm -rf repo
 
 echo "[INFO] Cloning $REPO_URL..."
 git clone "$REPO_URL" repo
 cd repo || exit 1
+
+# If ROOT_DIR is set, cd into it
+if [ -n "$ROOT_DIR" ]; then
+  cd "$ROOT_DIR" || exit 1
+fi
 
 echo "[INFO] Installing dependencies..."
 npm install

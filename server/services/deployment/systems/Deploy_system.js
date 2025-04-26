@@ -1,91 +1,63 @@
-// this actually deploys the application
-
-const { execSync } = require('child_process');
 const fs = require('fs');
-const { findAvailablePort } = require('../utils/Helper');
-const getIPAddress = require('../../../utils/IP');
+const { exec } = require('child_process');
 
-// Generate dynamic Nginx config file with unique port
-async function createNginxConfig(username, project) {
-    // Find an available port dynamically
-    const port = await findAvailablePort();
+// Function to create an Nginx config and restart Nginx
+function serveBuildFilesWithNginx(username, project, logger, port) {
+    return new Promise((resolve, reject) => {
+        // Path for the project’s build files
+        const projectDir = `/var/www/${username}/${project}`;
+        const nginxConfigPath = `/etc/nginx/sites-available/${project}`;
+        const nginxLinkPath = `/etc/nginx/sites-enabled/${project}`;
 
-    // Nginx configuration with the dynamic port
-    const config = `
-  server {
-      listen ${port};
-      server_name 100.125.12.34;  // You can set this dynamically or statically
-  
-      root /var/www/${username}/${project};
-      index index.html;
-  
-      location / {
-          try_files \$uri \$uri/ /index.html;
-      }
-  
-      location ~* \\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
-          expires 1y;
-          access_log off;
-          add_header Cache-Control "public";
-      }
-  
-      location ~* \\.html$ {
-          expires 1h;
-          add_header Cache-Control "private, no-cache, max-age=0";
-      }
-  
-      add_header X-Content-Type-Options nosniff;
-      add_header X-XSS-Protection "1; mode=block";
-      add_header X-Frame-Options SAMEORIGIN;
-  }
-  `;
+        // Check if the build files exist
+        if (!fs.existsSync(projectDir)) {
+            return reject(new Error(`Build files for ${project} not found at ${projectDir}`));
+        }
 
-    // Write the config to /etc/nginx/sites-available/
-    const configPath = `/etc/nginx/sites-available/${username}_${project}.conf`;
-    fs.writeFileSync(configPath, config);
+        // Validate that the port is a number and is within a valid range
+        if (typeof port !== 'number' || port < 1024 || port > 65535) {
+            return reject(new Error('Invalid port number. It should be between 1024 and 65535.'));
+        }
 
-    // Create a symlink in /etc/nginx/sites-enabled/
-    const enabledPath = `/etc/nginx/sites-enabled/${username}_${project}.conf`;
-    if (!fs.existsSync(enabledPath)) {
-        fs.symlinkSync(configPath, enabledPath);
-    }
+        // Nginx config template with dynamic port assignment
+        const nginxConfig = `
+server {
+    listen ${port};
+    server_name _;  # Use your domain or IP
 
-    return { configPath, port };
-}
+    root ${projectDir};
+    index index.html;
 
-// Create symlink for Nginx and restart the server
-function createSymlinkAndRestartNginx(username, project) {
-    const configPath = `/etc/nginx/sites-available/${username}_${project}.conf`;
-    const enabledPath = `/etc/nginx/sites-enabled/${username}_${project}.conf`;
-
-    // Check if the config file exists
-    if (!fs.existsSync(configPath)) {
-        throw new Error(`Nginx config file for ${username}/${project} does not exist.`);
-    }
-
-    // Create a symlink in sites-enabled if it doesn't exist
-    if (!fs.existsSync(enabledPath)) {
-        fs.symlinkSync(configPath, enabledPath);
-        console.log(`Created symlink for ${username}/${project}`);
-    } else {
-        console.log(`Symlink for ${username}/${project} already exists.`);
-    }
-
-    // Test the Nginx configuration to ensure there are no errors
-    try {
-        execSync('nginx -t', { stdio: 'inherit' });
-        console.log('Nginx config test passed.');
-    } catch (error) {
-        throw new Error('Nginx config test failed. Please check the config.');
-    }
-
-    // Restart Nginx to apply the new configuration
-    try {
-        execSync('systemctl restart nginx', { stdio: 'inherit' });
-        console.log('Nginx restarted successfully.');
-    } catch (error) {
-        throw new Error('Failed to restart Nginx. Please check the systemd service.');
+    location / {
+        try_files $uri $uri/ =404;
     }
 }
+`;
 
-module.exports = {createSymlinkAndRestartNginx, createNginxConfig}
+        // Create the Nginx config file
+        fs.writeFileSync(nginxConfigPath, nginxConfig);
+
+        // Create a symbolic link to enable the site
+        exec(`ln -s ${nginxConfigPath} ${nginxLinkPath}`, (err, stdout, stderr) => {
+            if (err) {
+                logger.error(`Failed to create symlink: ${stderr}`);
+                return reject(new Error('Failed to create symlink'));
+            }
+
+            logger.info(`Nginx config for ${project} created successfully on port ${port}`);
+
+            // Reload Nginx to apply changes
+            exec('sudo systemctl reload nginx', (reloadErr, reloadStdout, reloadStderr) => {
+                if (reloadErr) {
+                    logger.error(`Failed to reload Nginx: ${reloadStderr}`);
+                    return reject(new Error('Failed to reload Nginx'));
+                }
+
+                logger.info('Nginx reloaded successfully');
+                resolve(`http://localhost:${port}`);  // URL where it can be accessed
+            });
+        });
+    });
+}
+
+module.exports = { serveBuildFilesWithNginx };
