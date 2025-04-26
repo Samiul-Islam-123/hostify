@@ -3,84 +3,37 @@ const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
 
-async function runDockerBuild({ repoUrl, username, project, env = {}, logger }) {
-    return new Promise((resolve, reject) => {
-        const repoFolder = path.join('/tmp', username, project);
-        const outputFolder = path.join('/output', username, project);
-        const finalDestination = path.join('/var/www', username, project);
-
-        // Ensure output and repo directories exist
-        fs.mkdirSync(outputFolder, { recursive: true });
-        fs.mkdirSync(repoFolder, { recursive: true });
-
-        const escapedEnv = JSON.stringify(env).replace(/"/g, '\\"');
-
-        const args = [
-            'run', '--rm',
-            '-v', `${repoFolder}:/app`,
-            '-v', `${outputFolder}:/output/${project}`,
-            'deployment-builder',
-            repoUrl,
-            `/output/${project}`,
-            escapedEnv
-        ];
-
-        logger.info(`Running Docker build for ${repoUrl}...`);
-        const dockerProcess = spawn('docker', args);
-
-        dockerProcess.stdout.on('data', (data) => {
-            logger.info(`[docker stdout] ${data.toString().trim()}`);
-        });
-
-        dockerProcess.stderr.on('data', (data) => {
-            logger.error(`[docker stderr] ${data.toString().trim()}`);
-        });
-
-        dockerProcess.on('close', (code) => {
-            if (code !== 0) {
-                return reject(new Error(`Docker build failed with exit code ${code}`));
-            }
-
-            logger.info('Docker build completed. Moving build files...');
-
-            // Create /var/www/username/project if it doesn't exist
-            fs.mkdirSync(finalDestination, { recursive: true });
-
-            // Copy everything from outputFolder to /var/www/username/project
-            exec(`cp -r ${outputFolder}/* ${finalDestination}`, (err) => {
-                if (err) {
-                    logger.error(`Failed to copy files to /var/www: ${err.message}`);
-                    return reject(new Error('Failed to move build files'));
-                }
-
-                logger.info(`Project deployed to /var/www/${username}/${project}`);
-                resolve(finalDestination);
-            });
-        });
-    });
+// Helper function to clean directories
+function cleanDirectory(dirPath) {
+    if (fs.existsSync(dirPath)) {
+        fs.rmSync(dirPath, { recursive: true, force: true });
+    }
+    fs.mkdirSync(dirPath, { recursive: true });
 }
 
-async function buildProject({ repoUrl, username, project, env = {}, logger , rootDir}){
+async function buildProject({ repoUrl, username, project, env = {}, logger, rootDir }) {
     return new Promise((resolve, reject) => {
-        const repoFolder = path.join('/tmp', username, project);
-        const outputFolder = path.join('/output', username, project);
+        // Use relative paths in current working directory
+        const baseDir = process.cwd();
+        const tmpDir = path.join(baseDir, 'tmp', username, project);
+        const outputDir = path.join(baseDir, 'output', username, project);
         const finalDestination = path.join('/var/www', username, project);
 
-        // Ensure output and repo directories exist
-        fs.mkdirSync(outputFolder, { recursive: true });
-        fs.mkdirSync(repoFolder, { recursive: true });
+        // Clean previous build artifacts
+        cleanDirectory(tmpDir);
+        cleanDirectory(outputDir);
 
         const escapedEnv = JSON.stringify(env).replace(/"/g, '\\"');
 
         const args = [
             'run', '--rm',
-            '-v', `${repoFolder}:/app`,
-            '-v', `${outputFolder}:/output/${project}`,
+            '-v', `${tmpDir}:/app`,
+            '-v', `${path.join(baseDir, 'output')}:/host-output`,
             'deployment-builder',
             repoUrl,
-            `/output/${project}`,
+            `/host-output/${username}/${project}`,  // Correct output path in container
             escapedEnv,
-            rootDir
+            rootDir || ''
         ];
 
         logger.info(`Running Docker build for ${repoUrl}...`);
@@ -100,51 +53,24 @@ async function buildProject({ repoUrl, username, project, env = {}, logger , roo
             }
 
             logger.info('Docker build completed. Moving build files...');
+            cleanDirectory(finalDestination);
 
-            // Create /var/www/username/project if it doesn't exist
-            fs.mkdirSync(finalDestination, { recursive: true });
-
-            // Copy everything from outputFolder to /var/www/username/project
-            exec(`cp -r ${outputFolder}/* ${finalDestination}`, (err) => {
+            // Copy from relative output directory to final destination
+            exec(`cp -r ${outputDir}/* ${finalDestination}`, (err) => {
                 if (err) {
-                    logger.error(`Failed to copy files to /var/www: ${err.message}`);
+                    logger.error(`Failed to copy files: ${err.message}`);
                     return reject(new Error('Failed to move build files'));
                 }
 
-                logger.info(`Project deployed to /var/www/${username}/${project}`);
+                // Clean temporary directories
+                cleanDirectory(tmpDir);
+                cleanDirectory(outputDir);
+
+                logger.info(`Project deployed to ${finalDestination}`);
                 resolve(finalDestination);
             });
         });
     });
 }
 
-module.exports = { runDockerBuild, buildProject };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// docker run --rm \
-//     -v /tmp/Samiul-Islam-123/RepoDocs:/app \
-//     -v /output/Samiul-Islam-123/RepoDocs:/output/RepoDocs \
-//     deployment-builder \
-//     https://github.com/Samiul-Islam-123-RepoDocs.git \
-//     /output/RepoDocs \
-//     '{"envVariable1":"value1", "envVariable2":"value2"}' \
-//     /client
+module.exports = { buildProject };

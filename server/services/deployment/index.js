@@ -2,7 +2,7 @@ const express = require('express');
 const Logger = require('../../utils/Logger');
 const getIPAddress = require('../../utils/IP');
 const { createSymlinkAndRestartNginx, createNginxConfig, serveBuildFilesWithNginx } = require('./systems/Deploy_system'); // Import your deploy system functions
-const { buildProject, runDockerBuild } = require('./systems/Build_system'); // Assuming this is where your build function is located
+const { buildProject } = require('./systems/Build_system'); // Assuming this is where your build function is located
 const { extractRepoInfo } = require('./utils/Helper');
 const portfinder = require('portfinder');
 
@@ -34,11 +34,11 @@ app.post('/deploy', async (req, res) => {
             rootDir
         });
 
-        // const dynamicPort = await portfinder.getPortPromise({ port: [5000, 6000] });
+         const dynamicPort = await portfinder.getPortPromise({ port: [5000, 6000] });
         // //logger.info(dynamicPort)
-        // const serveURL = await serveBuildFilesWithNginx(username, project, logger, dynamicPort);
+         const serveURL = await serveBuildFilesWithNginx(username, project, logger, dynamicPort);
 
-        res.send({ message: "Deployment complete", url: buildPath });
+        res.send({ message: "Deployment complete", url: serveURL });
     } catch (error) {
         logger.error(error.message);
         res.status(500).send("Deployment failed");
