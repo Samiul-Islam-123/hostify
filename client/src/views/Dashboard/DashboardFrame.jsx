@@ -90,7 +90,7 @@ function DashboardFrame() {
   const getActiveRoute = () => {
     const path = location.pathname;
     if (path === '/dashboard/' || path === '/dashboard') {
-      return 'dashboard';
+      return 'projects';
     } else if (path.includes('/dashboard/deployments')) {
       return 'deployments';
     } else if (path.includes('/dashboard/domains')) {
@@ -100,7 +100,7 @@ function DashboardFrame() {
     } else if (path.includes('/dashboard/settings')) {
       return 'settings';
     }
-    return 'dashboard'; // default
+    return 'projects'; // default
   };
 
   // Create an activeRoute state based on the current path
@@ -156,8 +156,7 @@ function DashboardFrame() {
 
   // Navigation items
   const navItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, route: '/dashboard/', value: 'dashboard' },
-    { text: 'Deployments', icon: <LayersIcon />, route: '/dashboard/deployments', value: 'deployments' },
+    { text: 'Projects', icon: <DashboardIcon />, route: '/dashboard/', value: 'projects' },
     { text: 'Domains', icon: <LanguageIcon />, route: '/dashboard/domains', value: 'domains' },
     { text: 'Billing', icon: <PaymentIcon />, route: '/dashboard/billing', value: 'billing' },
     { text: 'Settings', icon: <SettingsIcon />, route: '/dashboard/settings', value: 'settings' }

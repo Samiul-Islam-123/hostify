@@ -1,8 +1,11 @@
 import React from 'react'
+import Projects from './Projects'
 
 function Dashboard() {
   return (
-    <div>Dashboard</div>
+    <>
+      <Projects />
+    </>
   )
 }
 
