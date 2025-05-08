@@ -8,7 +8,7 @@ function Projects() {
   const navigate = useNavigate();
 
   const handleProjectClick = (projectId) => {
-    navigate(`/dashboard/project/${projectId}`);
+    navigate(`/project/${projectId}/history`);
   };
 
   return (

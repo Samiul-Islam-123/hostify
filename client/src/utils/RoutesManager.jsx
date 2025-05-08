@@ -9,6 +9,7 @@ import StaticSiteForm from '../components/NewDeploymentComponents/StaticSiteForm
 import BackendServiceForm from '../components/NewDeploymentComponents/BackendServiceForm'
 import DatabaseForm from '../components/NewDeploymentComponents/DatabaseForm'
 import FullStackForm from '../components/NewDeploymentComponents/FullStackForm'
+import ProjectManagerFrame from '../views/Project/ProjectManagerFrame'
 
 function RoutesManager() {
   return (
@@ -19,6 +20,8 @@ function RoutesManager() {
             <Route exact path='/signup' element ={<Signup />} />
             
             <Route exact path='/dashboard/*' element ={<DashboardFrame />} />
+            <Route exact path='/project/*' element ={<ProjectManagerFrame />} />
+            
 
             <Route exact path='/create/static-website' element ={<StaticSiteForm />} />
             <Route exact path='/create/backend-service' element ={<BackendServiceForm />} />
