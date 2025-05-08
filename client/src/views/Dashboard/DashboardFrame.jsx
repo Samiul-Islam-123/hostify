@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Grid, 
-  Paper, 
-  Table, 
+import {
+  Box,
+  Typography,
+  Grid,
+  Paper,
+  Table,
   TableBody,
-  TableCell, 
-  TableContainer, 
-  TableHead, 
+  TableCell,
+  TableContainer,
+  TableHead,
   TableRow,
   List,
   ListItem,
@@ -19,9 +19,9 @@ import {
   IconButton,
   useMediaQuery
 } from '@mui/material';
-import { 
-  Dashboard as DashboardIcon, 
-  Layers as LayersIcon, 
+import {
+  Dashboard as DashboardIcon,
+  Layers as LayersIcon,
   Language as LanguageIcon,
   Payment as PaymentIcon,
   Settings as SettingsIcon,
@@ -85,7 +85,7 @@ function DashboardFrame() {
   const [open, setOpen] = useState(true);
   const isMobile = useMediaQuery('(max-width:900px)');
   const [mobileOpen, setMobileOpen] = useState(false);
-  
+
   // Determine active route based on current path
   const getActiveRoute = () => {
     const path = location.pathname;
@@ -105,7 +105,7 @@ function DashboardFrame() {
 
   // Create an activeRoute state based on the current path
   const [activeRoute, setActiveRoute] = useState(getActiveRoute());
-  
+
   // Update activeRoute whenever location changes
   useEffect(() => {
     setActiveRoute(getActiveRoute());
@@ -165,7 +165,7 @@ function DashboardFrame() {
   return (
     <Box sx={{ display: 'flex', backgroundColor: '#121212', color: 'white', height: '100vh', width: '100vw' }}>
       {/* New Resource Button - Fixed positioning at extreme right */}
-      <Box sx={{ 
+      <Box sx={{
         position: 'fixed',
         top: 16,
         right: 24,
@@ -178,11 +178,11 @@ function DashboardFrame() {
       {isMobile && (
         <>
           <IconButton
-            sx={{ 
-              position: 'fixed', 
-              top: 10, 
-              left: 10, 
-              zIndex: 1300, 
+            sx={{
+              position: 'fixed',
+              top: 10,
+              left: 10,
+              zIndex: 1300,
               color: 'white',
               backgroundColor: 'rgba(0,0,0,0.3)',
               '&:hover': {
@@ -203,10 +203,10 @@ function DashboardFrame() {
             }}
           >
             {/* Drawer content */}
-            <Box sx={{ 
-              p: 2, 
-              display: 'flex', 
-              alignItems: 'center', 
+            <Box sx={{
+              p: 2,
+              display: 'flex',
+              alignItems: 'center',
               justifyContent: 'space-between'
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -219,7 +219,7 @@ function DashboardFrame() {
             <Divider sx={{ backgroundColor: '#30363d', my: 1 }} />
             <List style={{ cursor: "pointer" }}>
               {navItems.map((item) => (
-                <StyledListItem 
+                <StyledListItem
                   key={item.text}
                   button
                   onClick={() => {
@@ -236,9 +236,9 @@ function DashboardFrame() {
                 </StyledListItem>
               ))}
             </List>
-            <Box sx={{ 
-              position: 'absolute', 
-              bottom: 16, 
+            <Box sx={{
+              position: 'absolute',
+              bottom: 16,
               left: 16
             }}>
               <IconButton sx={{ color: 'white' }}>
@@ -252,10 +252,10 @@ function DashboardFrame() {
       {/* Desktop Drawer */}
       {!isMobile && (
         <StyledDrawer variant="permanent" open={open} isMobile={false}>
-          <Box sx={{ 
-            p: 2, 
-            display: 'flex', 
-            alignItems: 'center', 
+          <Box sx={{
+            p: 2,
+            display: 'flex',
+            alignItems: 'center',
             justifyContent: 'space-between'
           }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -266,8 +266,8 @@ function DashboardFrame() {
                 </Typography>
               )}
             </Box>
-            <IconButton 
-              onClick={handleDrawerToggle} 
+            <IconButton
+              onClick={handleDrawerToggle}
               sx={{ color: 'white' }}
             >
               {open ? <ChevronLeftIcon /> : <MenuIcon />}
@@ -276,7 +276,7 @@ function DashboardFrame() {
           <Divider sx={{ backgroundColor: '#30363d', my: 1 }} />
           <List style={{ cursor: "pointer" }}>
             {navItems.map((item) => (
-              <StyledListItem 
+              <StyledListItem
                 key={item.text}
                 button
                 onClick={() => {
@@ -293,11 +293,11 @@ function DashboardFrame() {
               </StyledListItem>
             ))}
           </List>
-          <Box sx={{ 
-            position: 'absolute', 
-            bottom: 16, 
-            left: open ? 16 : '50%', 
-            transform: open ? 'none' : 'translateX(-50%)' 
+          <Box sx={{
+            position: 'absolute',
+            bottom: 16,
+            left: open ? 16 : '50%',
+            transform: open ? 'none' : 'translateX(-50%)'
           }}>
             <IconButton sx={{ color: 'white' }}>
               <HelpIcon />
@@ -307,9 +307,18 @@ function DashboardFrame() {
       )}
 
       {/* Main content */}
-      <Box sx={{ marginTop: "24px", width: '100%', backgroundColor: '#121212', minHeight: '97vh' }}>
-        <DashboardRouter />
+      <Box
+        sx={{
+          marginTop: "24px",
+          width: '100%',
+          backgroundColor: '#121212',
+          minHeight: '97vh',
+          p: 3
+        }}
+      >
+         <DashboardRouter /> 
       </Box>
+
     </Box>
   );
 }
