@@ -1,5 +1,5 @@
 import React from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import LandinPage from '../views/LandingPage/LandinPage'
 import Login from '../views/Auth/Login'
 import Signup from '../views/Auth/Signup'
@@ -10,28 +10,52 @@ import BackendServiceForm from '../components/NewDeploymentComponents/BackendSer
 import DatabaseForm from '../components/NewDeploymentComponents/DatabaseForm'
 import FullStackForm from '../components/NewDeploymentComponents/FullStackForm'
 import ProjectManagerFrame from '../views/Project/ProjectManagerFrame'
+import { RedirectToSignIn, useAuth } from '@clerk/clerk-react'
+
+// Protected Route Wrapper
+const ProtectedRoute = () => {
+  const { isSignedIn, isLoaded } = useAuth();
+
+  if (!isLoaded) {
+    // Optional: Show loading spinner
+    return <div>Loading...</div>;
+  }
+
+  return isSignedIn ? <Outlet /> : <RedirectToSignIn />;
+};
+
+// Public-only Route Wrapper (for login/signup)
+const PublicOnlyRoute = () => {
+  const { isSignedIn } = useAuth();
+  return isSignedIn ? <Navigate to="/dashboard" /> : <Outlet />;
+};
 
 function RoutesManager() {
   return (
-    <>
-        <Routes>
-            <Route exact path='/' element={<LandinPage />} />
-            <Route exact path='/login' element ={<Login />} />
-            <Route exact path='/signup' element ={<Signup />} />
-            
-            <Route exact path='/dashboard/*' element ={<DashboardFrame />} />
-            <Route exact path='/project/*' element ={<ProjectManagerFrame />} />
-            
+    <Routes>
+      {/* Public Routes */}
+      <Route element={<PublicOnlyRoute />}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+      </Route>
 
-            <Route exact path='/create/static-website' element ={<StaticSiteForm />} />
-            <Route exact path='/create/backend-service' element ={<BackendServiceForm />} />
-            <Route exact path='/create/database' element ={<DatabaseForm />} />
-            <Route exact path='/create/fullstack-application' element ={<FullStackForm />} />
-            
+      {/* Protected Routes */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/dashboard/*" element={<DashboardFrame />} />
+        <Route path="/project/*" element={<ProjectManagerFrame />} />
+        <Route path="/create/static-website" element={<StaticSiteForm />} />
+        <Route path="/create/backend-service" element={<BackendServiceForm />} />
+        <Route path="/create/database" element={<DatabaseForm />} />
+        <Route path="/create/fullstack-application" element={<FullStackForm />} />
+      </Route>
 
-        </Routes>
-    </>
-  )
+      {/* Public Landing Page */}
+      <Route path="/" element={<LandinPage />} />
+      
+      {/* Catch-all redirect */}
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
+  );
 }
 
-export default RoutesManager
+export default RoutesManager;

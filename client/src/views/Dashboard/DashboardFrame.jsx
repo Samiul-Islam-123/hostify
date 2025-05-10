@@ -34,6 +34,7 @@ import { styled } from '@mui/material/styles';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import DashboardRouter from './DashboardRouter';
 import NewResourceButton from '../../components/NewResourceButton'; // Import the new component
+import { UserButton } from '@clerk/clerk-react';
 
 // Create styled components to match the dark theme in the image
 const StyledDrawer = styled(Drawer)(({ theme, open, isMobile }) => ({
@@ -171,6 +172,7 @@ function DashboardFrame() {
         right: 24,
         zIndex: 1300
       }}>
+        
         <NewResourceButton onOptionSelect={handleNewResourceSelect} />
       </Box>
 
@@ -241,6 +243,7 @@ function DashboardFrame() {
               bottom: 16,
               left: 16
             }}>
+                <UserButton />
               <IconButton sx={{ color: 'white' }}>
                 <HelpIcon />
               </IconButton>
@@ -299,8 +302,10 @@ function DashboardFrame() {
             left: open ? 16 : '50%',
             transform: open ? 'none' : 'translateX(-50%)'
           }}>
+            <UserButton />
             <IconButton sx={{ color: 'white' }}>
               <HelpIcon />
+              
             </IconButton>
           </Box>
         </StyledDrawer>

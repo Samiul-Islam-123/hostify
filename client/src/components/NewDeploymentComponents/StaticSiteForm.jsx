@@ -27,6 +27,8 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import FolderIcon from '@mui/icons-material/Folder';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@clerk/clerk-react';
+import { useEffect } from 'react';
 
 function StaticSiteForm() {
   const [deployMethod, setDeployMethod] = useState('git');
@@ -74,6 +76,37 @@ function StaticSiteForm() {
   const handleFileSelect = () => {
     fileInputRef.current.click();
   };
+
+  const { getToken } = useAuth();
+  const [repos, setRepos] = useState([]);
+
+  useEffect(() => {
+    const fetchRepos = async () => {
+      try {
+        const authToken = await getToken();
+        console.log(authToken);
+        
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/repos`, {
+          headers: {
+            Authorization: `Bearer ${authToken}`
+          }
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch');
+        
+        setRepos(await response.json());
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    };
+
+    fetchRepos();
+  }, [getToken]);
+
+  useEffect(() => {
+    console.log(repos);
+  },[repos])
+
 
   return (
     <Container maxWidth="lg" sx={{ minHeight: "100vh", pt: 3, pb: 5, bgcolor: '#121212', color: 'white' }}>
