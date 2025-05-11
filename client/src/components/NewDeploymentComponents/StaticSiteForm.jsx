@@ -29,6 +29,8 @@ import FolderIcon from '@mui/icons-material/Folder';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import { useEffect } from 'react';
+import { useUser } from "@clerk/clerk-react";
+
 
 function StaticSiteForm() {
   const [deployMethod, setDeployMethod] = useState('git');
@@ -77,35 +79,58 @@ function StaticSiteForm() {
     fileInputRef.current.click();
   };
 
+  const { user } = useUser();
   const { getToken } = useAuth();
   const [repos, setRepos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchRepos = async () => {
       try {
-        const authToken = await getToken();
-        console.log(authToken);
-        
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/repos`, {
-          headers: {
-            Authorization: `Bearer ${authToken}`
-          }
-        });
+        if (!user) {
+          setLoading(false);
+          return;
+        }
 
-        if (!response.ok) throw new Error('Failed to fetch');
+        // Get GitHub username from the authenticated user
+        const githubAccount = user.externalAccounts?.find(
+          account => account.provider === 'github'
+        );
         
-        setRepos(await response.json());
-      } catch (error) {
-        console.error('Error:', error);
+        if (!githubAccount) {
+          setError('No GitHub account connected');
+          setLoading(false);
+          return;
+        }
+        
+        const username = githubAccount.username;
+        
+        // Use the public GitHub API to fetch public repositories
+        // Note: This will only fetch PUBLIC repositories
+        const response = await fetch(`https://api.github.com/users/${username}/repos`);
+        
+        if (!response.ok) {
+          throw new Error(`GitHub API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('GitHub Repositories:', data);
+        setRepos(data);
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching repos:', err);
+        setError(err.message);
+        setLoading(false);
       }
     };
-
+    
     fetchRepos();
-  }, [getToken]);
+  }, [user]);
 
-  useEffect(() => {
-    console.log(repos);
-  },[repos])
+  // useEffect(() => {
+  //   console.log(repos);
+  // },[repos])
 
 
   return (
