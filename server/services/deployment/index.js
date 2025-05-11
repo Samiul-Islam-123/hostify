@@ -7,19 +7,27 @@ const { serveBuildFilesWithNginx } = require('./systems/Deploy_system');
 const { buildProject } = require('./systems/Build_system');
 const { extractRepoInfo } = require('./utils/Helper');
 const portfinder = require('portfinder');
+const cors = require('cors')
 
 const PORT = process.env.PORT || 5502;
 const app = express();
 const server = http.createServer(app); // Attach HTTP server
 const io = new Server(server, {
     cors: {
-        origin: "*", // Update this in production
-        methods: ["GET", "POST"]
+        origin: "http://100.90.238.12:5173", // ✅ Use the actual frontend origin
+        methods: ["GET", "POST"],
+        credentials: true // ✅ This must be true to allow cookies or auth headers
     }
 });
 
+
 const logger = new Logger();
 app.use(express.json());
+app.use(cors({
+    origin: "http://100.90.238.12:5173",
+    credentials: true
+}));
+
 
 const socketClients = new Map(); // Map<socketId, socket>
 function emitLogs(socketID, io, data) {
@@ -32,6 +40,10 @@ function emitLogs(socketID, io, data) {
 io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
     socketClients.set(socket.id, socket);
+
+    socket.on('test-data', data => {
+        socket.emit('mushi', data)
+    })
 
     socket.on('deploy-application', async (data) => {
         const { repoURL, env, rootDir } = data;

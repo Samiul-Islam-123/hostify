@@ -30,6 +30,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import { useEffect } from 'react';
 import { useUser } from "@clerk/clerk-react";
+import { useSocket } from '../../context/SocketContext';
 
 
 function StaticSiteForm() {
@@ -49,6 +50,7 @@ function StaticSiteForm() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredRepos, setFilteredRepos] = useState([]);
+  const {socket} = useSocket();
 
   const handleDeployMethodChange = (event) => {
     setDeployMethod(event.target.value);
@@ -147,6 +149,14 @@ function StaticSiteForm() {
     setFilteredRepos(filtered);
   }, [searchQuery, repos]);
 
+  useEffect(() => {
+    if(socket){
+      socket.on('mushi', data => {
+        console.log(data)
+      })
+    }
+  },[socket])
+
   const validateForm = () => {
     const newErrors = {};
     
@@ -216,7 +226,7 @@ function StaticSiteForm() {
     };
 
     console.log('Form data ready to send:', formData);
-    // TODO: Send to server
+    socket.emit('test-data', formData);
   };
 
   return (
@@ -455,7 +465,7 @@ function StaticSiteForm() {
                   {/* Root Directory */}
                   <Box>
                     <Typography variant="body1" component="p" sx={{ fontWeight: 'medium', mb: 1 }}>
-                      Root Directory <Box component="span" sx={{ color: '#888', fontWeight: 'normal' }}>Optional</Box>
+                      Root Directory 
                     </Typography>
                     <Typography variant="caption" sx={{ display: 'block', color: '#888', mb: 1 }}>
                       If set, commands will run from this directory instead of

@@ -1,19 +1,22 @@
 require('dotenv').config();
 const express = require('express');
 const { ClerkExpressRequireAuth } = require('@clerk/clerk-sdk-node');
-const Logger = require('../../utils/Logger');
 const getIPAddress = require('../../utils/IP');
 
 const PORT = process.env.PORT || 5501;
 const app = express();
-const logger = new Logger();
 
 const cors = require('cors');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const { Webhook } = require('svix');
+const UserModel = require('../../Database/models/UserModel');
+const generateToken = require('./JWT');
+const Logger = require('../../utils/Logger');
+const ConnectToDatabase = require('../../Database/DBConnection');
 require('dotenv').config();
 
+const logger = new Logger();
 // Middleware to parse JSON bodies
 app.use(express.json());
 
@@ -46,7 +49,7 @@ app.use(cors())
       
 //       const repos = await response.json();
 
-//       console.log(repos.map(repo => ({
+//       console.logger(repos.map(repo => ({
 //         name: repo.name,
 //         url: repo.html_url,
 //         private: repo.private
@@ -93,7 +96,7 @@ app.use(cors())
 //   try {
 //     // Get the authenticated user's ID from the JWT
 //     const userId = req.auth.userId;
-//     console.log(userId)
+//     console.logger(userId)
     
 //     // Make request to Clerk API to get user data including OAuth connections
 //     const clerkResponse = await axios.get(`https://api.clerk.dev/v1/users/${userId}`, {
@@ -104,14 +107,14 @@ app.use(cors())
 //     });
     
 //     const user = clerkResponse.data;
-//     console.log("Clerk User Data:", JSON.stringify(user, null, 2)); // 👈 Log full response
+//     console.logger("Clerk User Data:", JSON.stringify(user, null, 2)); // 👈 logger full response
 //     // Find the GitHub OAuth account
 
 //     const githubAccount = user.external_accounts?.find(
 //       account => account.provider === 'github'
 //     );
 
-//     console.log(githubAccount)
+//     console.logger(githubAccount)
     
 //     if (!githubAccount) {
 //       return res.status(400).json({ error: 'No GitHub account connected' });
@@ -128,7 +131,7 @@ app.use(cors())
 //       }
 //     );
     
-//     console.log("Token Response:", JSON.stringify(tokenResponse.data, null, 2)); // 👈 Log token response
+//     console.logger("Token Response:", JSON.stringify(tokenResponse.data, null, 2)); // 👈 logger token response
     
 //     const githubToken = tokenResponse.data.data?.[0]?.token; // 👈 Key might be nested
     
@@ -155,7 +158,115 @@ app.use(cors())
 // });
 
 
-app.listen(PORT, () => {
+app.post('/register', async(req,res) => {
+    const { username, email, isVerified, avatarURL } = req.body;
+
+    try {
+        if (!username || !email || !isVerified)
+            return res.json({
+                success: false,
+                message: "Unable to save user data, All fields must be provided"
+            })
+
+        //check for existing user
+        const User = await UserModel.findOne({
+            email: email
+        })
+
+        if (!User) {
+            //create user
+            const CurrentUser = new UserModel({
+                username, email, isVerified, avatarURL
+            })
+            //create jwt token
+            const token = generateToken({
+                id : CurrentUser._id,
+                username : CurrentUser.username,
+                email : CurrentUser.email,
+                isVerified : CurrentUser.isVerified,
+                avatarURL : CurrentUser.avatarURL
+            });
+            //save the user
+            await CurrentUser.save();
+            return res.json({
+                success: true,
+                message: "User has been registered Successfully",
+                token : token
+            })
+        }
+
+        //create jwt token
+        const token = generateToken({
+            id : User._id,
+            username : User.username,
+            email : User.email,
+            isVerified : User.isVerified,
+
+        });
+        return res.json({
+            success: true,
+            message: "User already exists",
+            token : token
+        })
+    }
+    catch (error) {
+        logger.error(error);
+        return res.json({
+            success: false,
+            message: error.message
+        })
+    }
+})
+
+app.post('/login', async(req,res) => {
+    const { email, username } = req.body;
+
+    try {
+        if (!email )
+            return res.json({
+                success: false,
+                message: "Unable to save user data, All fields must be provided"
+            })
+
+        //check for existing user
+        const User = await UserModel.findOne({
+            email: email,
+            username : username
+        })
+
+        if (!User) {
+            return res.json({
+                success : false,
+                message : "User not found"
+            })
+        }
+
+        //create jwt token
+        const token = generateToken({
+            id : User._id,
+            username : User.username,
+            email : User.email,
+            isVerified : User.isVerified,
+            avatarURL : User.avatarURL
+        });
+        return res.json({
+            success: true,
+            message: "User logged in successfully",
+            token : token
+        })
+    }
+    catch (error) {
+        logger.error(error);
+        return res.json({
+            success: false,
+            message: error.message
+        })
+    }
+})
+
+app.listen(PORT, async () => {
+    const DB_URL = process.env.DB_URL;
+    await ConnectToDatabase(DB_URL);
     const IP = getIPAddress();
     logger.info(`Auth service is running at http://${IP}:${PORT}`);
 });

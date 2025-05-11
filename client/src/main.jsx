@@ -7,6 +7,7 @@ import { createTheme, ThemeProvider, CssBaseline } from "@mui/material"
 import darkTheme from './utils/Theme';
 
 import { ClerkProvider } from '@clerk/clerk-react'
+import { SocketProvider } from './context/SocketContext';
 
 // Import your Publishable Key
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
@@ -19,12 +20,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ThemeProvider theme={darkTheme}>
 
-    <BrowserRouter>
-    <CssBaseline />
-    <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
-        <App />
-    </ClerkProvider>
-    </BrowserRouter>
+      <BrowserRouter>
+        <CssBaseline />
+        <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+          <SocketProvider>
+            <App />
+          </SocketProvider>
+        </ClerkProvider>
+      </BrowserRouter>
     </ThemeProvider>
   </React.StrictMode>
 );
