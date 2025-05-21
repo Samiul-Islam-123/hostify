@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -16,7 +16,13 @@ import {
   TextField,
   Typography,
   InputAdornment,
-  Paper
+  Paper,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  ListItemSecondaryAction,
+  Chip
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import GitHubIcon from '@mui/icons-material/GitHub';
@@ -26,10 +32,13 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import FolderIcon from '@mui/icons-material/Folder';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import ImageIcon from '@mui/icons-material/Image';
+import CodeIcon from '@mui/icons-material/Code';
+import DescriptionIcon from '@mui/icons-material/Description';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@clerk/clerk-react';
+import { useUser } from '@clerk/clerk-react';
 import { useEffect } from 'react';
-import { useUser } from "@clerk/clerk-react";
 import { useSocket } from '../../context/SocketContext';
 
 
@@ -45,8 +54,10 @@ function StaticSiteForm() {
   const [envVars, setEnvVars] = useState([{ name: '', value: '' }]);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [errors, setErrors] = useState({});
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
   const folderInputRef = useRef(null);
+  const dropZoneRef = useRef(null);
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredRepos, setFilteredRepos] = useState([]);
@@ -73,7 +84,10 @@ function StaticSiteForm() {
   };
 
   const handleFileChange = (event) => {
-    setSelectedFiles(Array.from(event.target.files));
+    const files = Array.from(event.target.files);
+    if (files.length > 0) {
+      setSelectedFiles(prevFiles => [...prevFiles, ...files]);
+    }
   };
 
   const handleFolderSelect = () => {
@@ -84,11 +98,66 @@ function StaticSiteForm() {
     fileInputRef.current.click();
   };
 
-  const { user } = useUser();
-  const { getToken } = useAuth();
+  const handleDragEnter = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) {
+      setIsDragging(true);
+    }
+  }, [isDragging]);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      setSelectedFiles(prevFiles => [...prevFiles, ...files]);
+    }
+  }, []);
+
+  const removeFile = (indexToRemove) => {
+    setSelectedFiles(prevFiles =>
+      prevFiles.filter((_, index) => index !== indexToRemove)
+    );
+  };
+
+  const getFileIcon = (file) => {
+    const fileType = file.type;
+    if (fileType.startsWith('image/')) {
+      return <ImageIcon />;
+    } else if (fileType.includes('javascript') || fileType.includes('css') || fileType.includes('html')) {
+      return <CodeIcon />;
+    } else {
+      return <InsertDriveFileIcon />;
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   const [repos, setRepos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { user } = useUser();
 
   useEffect(() => {
     const fetchRepos = async () => {
@@ -102,30 +171,30 @@ function StaticSiteForm() {
         const githubAccount = user.externalAccounts?.find(
           account => account.provider === 'github'
         );
-        
+
         if (!githubAccount) {
           setError('No GitHub account connected');
           setLoading(false);
           return;
         }
-        
+
         const username = githubAccount.username;
-        
+
         // Use the public GitHub API to fetch public repositories with sorting and pagination
         const response = await fetch(
           `https://api.github.com/users/${username}/repos?sort=updated&per_page=20&page=1`
         );
-        
+
         if (!response.ok) {
           throw new Error(`GitHub API error: ${response.status}`);
         }
-        
+
         const data = await response.json();
         // Sort by updated_at date (newest first) and take first 20
         const sortedRepos = data
           .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
           .slice(0, 20);
-        
+
         console.log('GitHub Repositories:', sortedRepos);
         setRepos(sortedRepos);
         setLoading(false);
@@ -135,14 +204,14 @@ function StaticSiteForm() {
         setLoading(false);
       }
     };
-    
+
     fetchRepos();
   }, [user]);
 
   useEffect(() => {
     if (!repos) return;
-    
-    const filtered = repos.filter(repo => 
+
+    const filtered = repos.filter(repo =>
       repo.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       repo.full_name.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -159,7 +228,7 @@ function StaticSiteForm() {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     // Validate service name
     if (!serviceName.trim()) {
       newErrors.serviceName = 'Service name is required';
@@ -185,7 +254,7 @@ function StaticSiteForm() {
     }
 
     // Validate environment variables
-    const invalidEnvVars = envVars.some(({ name, value }) => 
+    const invalidEnvVars = envVars.some(({ name, value }) =>
       (name.trim() && !value.trim()) || (!name.trim() && value.trim())
     );
     if (invalidEnvVars) {
@@ -198,7 +267,7 @@ function StaticSiteForm() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       console.log('Form validation failed:', errors);
       return;
@@ -465,7 +534,7 @@ function StaticSiteForm() {
                   {/* Root Directory */}
                   <Box>
                     <Typography variant="body1" component="p" sx={{ fontWeight: 'medium', mb: 1 }}>
-                      Root Directory 
+                      Root Directory
                     </Typography>
                     <Typography variant="caption" sx={{ display: 'block', color: '#888', mb: 1 }}>
                       If set, commands will run from this directory instead of
@@ -627,10 +696,145 @@ function StaticSiteForm() {
                 </>
               )}
 
-              {deployMethod === 'upload' && errors.files && (
-                <Typography color="error" sx={{ mt: 1, mb: 2 }}>
-                  {errors.files}
-                </Typography>
+              {deployMethod === 'upload' && (
+                <>
+                  {errors.files && (
+                    <Typography color="error" sx={{ mt: 1, mb: 2 }}>
+                      {errors.files}
+                    </Typography>
+                  )}
+
+                  <Box sx={{ mb: 4 }}>
+                    <Typography variant="body1" component="p" sx={{ fontWeight: 'medium', mb: 1 }}>
+                      Upload Static Files
+                    </Typography>
+                    <Typography variant="caption" sx={{ display: 'block', color: '#888', mb: 2 }}>
+                      Drag and drop your static files or folders here. Only static files like HTML, CSS, JavaScript, images, etc. are supported.
+                    </Typography>
+
+                    {/* Drag and Drop Area */}
+                    <Box
+                      ref={dropZoneRef}
+                      onDragEnter={handleDragEnter}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      sx={{
+                        border: '2px dashed',
+                        borderColor: isDragging ? '#8957ff' : '#333',
+                        borderRadius: 2,
+                        p: 4,
+                        textAlign: 'center',
+                        bgcolor: isDragging ? 'rgba(137, 87, 255, 0.05)' : '#1E1E1E',
+                        transition: 'all 0.2s ease',
+                        cursor: 'pointer',
+                        mb: 2
+                      }}
+                      onClick={handleFileSelect}
+                    >
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        style={{ display: 'none' }}
+                        onChange={handleFileChange}
+                        multiple
+                      />
+                      <input
+                        type="file"
+                        ref={folderInputRef}
+                        style={{ display: 'none' }}
+                        onChange={handleFileChange}
+                        webkitdirectory="true"
+                        directory="true"
+                      />
+
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                        <InsertDriveFileIcon sx={{ fontSize: 48, color: '#8957ff' }} />
+                        <Typography variant="h6" sx={{ color: 'white' }}>
+                          {isDragging ? 'Drop files here' : 'Drag & drop files here'}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#888' }}>
+                          or
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 2 }}>
+                          <Button
+                            variant="outlined"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleFileSelect();
+                            }}
+                            sx={{ color: 'white', borderColor: '#444' }}
+                          >
+                            Select Files
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleFolderSelect();
+                            }}
+                            sx={{ color: 'white', borderColor: '#444' }}
+                          >
+                            Select Folder
+                          </Button>
+                        </Box>
+                      </Box>
+                    </Box>
+
+                    {/* File List */}
+                    {selectedFiles.length > 0 && (
+                      <Box sx={{ mt: 3 }}>
+                        <Typography variant="body1" component="p" sx={{ fontWeight: 'medium', mb: 2 }}>
+                          Selected Files ({selectedFiles.length})
+                        </Typography>
+                        <Paper
+                          variant="outlined"
+                          sx={{
+                            bgcolor: '#1E1E1E',
+                            borderColor: '#333',
+                            maxHeight: '300px',
+                            overflow: 'auto'
+                          }}
+                        >
+                          <List sx={{ p: 0 }}>
+                            {selectedFiles.map((file, index) => (
+                              <ListItem
+                                key={`${file.name}-${index}`}
+                                sx={{
+                                  borderBottom: index < selectedFiles.length - 1 ? '1px solid #333' : 'none',
+                                  py: 1
+                                }}
+                              >
+                                <ListItemIcon sx={{ minWidth: 40, color: 'white' }}>
+                                  {getFileIcon(file)}
+                                </ListItemIcon>
+                                <ListItemText
+                                  primary={
+                                    <Typography sx={{ color: 'white', wordBreak: 'break-all' }}>
+                                      {file.name}
+                                    </Typography>
+                                  }
+                                  secondary={
+                                    <Typography variant="caption" sx={{ color: '#888' }}>
+                                      {formatFileSize(file.size)}
+                                    </Typography>
+                                  }
+                                />
+                                <IconButton
+                                  edge="end"
+                                  onClick={() => removeFile(index)}
+                                  sx={{ color: '#888' }}
+                                >
+                                  <DeleteIcon />
+                                </IconButton>
+                              </ListItem>
+                            ))}
+                          </List>
+                        </Paper>
+                      </Box>
+                    )}
+                  </Box>
+                </>
               )}
 
               {/* Environment Variables */}
@@ -648,61 +852,61 @@ function StaticSiteForm() {
                 <Typography variant="caption" sx={{ display: 'block', color: '#888', mb: 1 }}>
                   Where your static site will be deployed.
                 </Typography>
-                
+
                 <Paper variant="outlined" sx={{ bgcolor: '#1E1E1E', borderColor: '#333', overflow: 'hidden' }}>
                   <RadioGroup value={region} onChange={(e) => setRegion(e.target.value)}>
-                    <FormControlLabel 
-                      value="Oregon" 
+                    <FormControlLabel
+                      value="Oregon"
                       control={
-                        <Radio 
-                          sx={{ 
+                        <Radio
+                          sx={{
                             color: '#6B46C1',
                             '&.Mui-checked': { color: '#8B5CF6' },
                             ml: 1
-                          }} 
+                          }}
                         />
-                      } 
+                      }
                       label={
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', py: 2 }}>
                           <Typography sx={{ color: 'white' }}>Oregon (US West)</Typography>
                           <Typography sx={{ color: '#888', mr: 2 }}>13 existing services</Typography>
                         </Box>
                       }
-                      sx={{ 
-                        m: 0, 
-                        width: '100%', 
+                      sx={{
+                        m: 0,
+                        width: '100%',
                         borderBottom: '1px solid #333',
                         bgcolor: region === 'Oregon' ? 'rgba(107, 70, 193, 0.1)' : 'transparent',
                       }}
                     />
-                    <FormControlLabel 
-                      value="Singapore" 
+                    <FormControlLabel
+                      value="Singapore"
                       control={
-                        <Radio 
-                          sx={{ 
+                        <Radio
+                          sx={{
                             color: '#6B46C1',
                             '&.Mui-checked': { color: '#8B5CF6' },
                             ml: 1
-                          }} 
+                          }}
                         />
-                      } 
+                      }
                       label={
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', py: 2 }}>
                           <Typography sx={{ color: 'white' }}>Singapore (Southeast Asia)</Typography>
                           <Typography sx={{ color: '#888', mr: 2 }}>4 existing services</Typography>
                         </Box>
                       }
-                      sx={{ 
-                        m: 0, 
+                      sx={{
+                        m: 0,
                         width: '100%',
                         bgcolor: region === 'Singapore' ? 'rgba(107, 70, 193, 0.1)' : 'transparent',
                       }}
                     />
                   </RadioGroup>
                 </Paper>
-                
+
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-                  <Button 
+                  <Button
                     endIcon={<AddIcon />}
                     sx={{ color: 'white', textTransform: 'none' }}
                   >
