@@ -18,6 +18,12 @@ const UserSchema = new mongoose.Schema({
         type: Date,
         default: Date.now // Correctly sets default to current date on creation
     },
+    projects : [
+        {
+            type : mongoose.Schema.Types.ObjectId,
+            ref : 'projects'
+        }
+    ],
     avatarURL: String
 }, { timestamps: true }); // Adds createdAt and updatedAt timestamps
 

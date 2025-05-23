@@ -1,75 +1,89 @@
 import React from 'react';
-import { Box, Container, Grid, Typography, IconButton, Stack, Button, Divider, TextField } from '@mui/material';
+import { Box, Typography, Container, Link, Grid , List, ListItem} from '@mui/material';
+import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import TwitterIcon from '@mui/icons-material/Twitter';
-import GitHubIcon from '@mui/icons-material/GitHub';
 
-const Footer = () => {
+function Footer() {
   return (
-    <Box sx={{ py: 6, backgroundColor: 'rgba(15, 23, 42, 0.9)', color: 'white' }}>
+    <Box sx={{ backgroundColor: '#1C2733', py: { xs: 6, md: 8 }, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
       <Container maxWidth="lg">
-        <Grid container spacing={4}>
-          {/* Brand Section */}
+        <Grid container spacing={{ xs: 4, md: 8 }}>
           <Grid item xs={12} md={4}>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-              CloudDeploy
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: 'white' }}>
+              Hostify
             </Typography>
-            <Typography variant="body2" color="gray" sx={{ mb: 2 }}>
-              The modern platform for deploying and scaling web applications.
+            <Typography variant="body2" sx={{ color: '#B0B0B0', mb: 2 }}>
+              Modern hosting for developers. Deploy, scale, and manage applications with ease on our reliable and flexible platform.
             </Typography>
-            <Stack direction="row" spacing={1}>
-              <IconButton color="inherit">
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Link href="#" color="inherit" sx={{ color: '#B0B0B0', '&:hover': { color: '#00D1A3' } }}>
                 <TwitterIcon />
-              </IconButton>
-              <IconButton color="inherit">
-                <GitHubIcon />
-              </IconButton>
-            </Stack>
+              </Link>
+              <Link href="#" color="inherit" sx={{ color: '#B0B0B0', '&:hover': { color: '#00D1A3' } }}>
+                <LinkedInIcon />
+              </Link>
+            </Box>
           </Grid>
-          {/* Links Sections */}
-          {[
-            { title: 'Product', links: ['Features', 'Pricing', 'Integrations', 'Changelog', 'Roadmap'] },
-            { title: 'Resources', links: ['Documentation', 'Guides', 'API Reference', 'Blog', 'Community'] },
-            { title: 'Company', links: ['About', 'Careers', 'Contact', 'Privacy', 'Terms'] },
-            { title: 'Support', links: ['Help Center', 'Status', 'FAQ', 'Contact Support'] },
-          ].map((section, index) => (
-            <Grid item xs={6} sm={3} md={2} key={index}>
-              <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
-                {section.title}
-              </Typography>
-              <Stack spacing={1}>
-                {section.links.map((link) => (
-                  <Button key={link} color="inherit" sx={{ justifyContent: 'flex-start', p: 0 }}>
-                    {link}
-                  </Button>
-                ))}
-              </Stack>
-            </Grid>
-          ))}
+
+          <Grid item xs={6} md={2}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2, color: 'white' }}>
+              Product
+            </Typography>
+            <List disablePadding>
+              {['Features', 'Pricing', 'Enterprise', 'Case Studies', 'Security'].map((item, index) => (
+                <ListItem key={index} disablePadding sx={{ mb: 1 }}>
+                  <Link href="#" color="inherit" underline="none" sx={{ color: '#B0B0B0', '&:hover': { color: '#00D1A3' } }}>
+                    <Typography variant="body2">{item}</Typography>
+                  </Link>
+                </ListItem>
+              ))}
+            </List>
+          </Grid>
+
+          <Grid item xs={6} md={2}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2, color: 'white' }}>
+              Resources
+            </Typography>
+            <List disablePadding>
+              {['Documentation', 'Guides', 'API Reference', 'Blog', 'Community'].map((item, index) => (
+                <ListItem key={index} disablePadding sx={{ mb: 1 }}>
+                  <Link href="#" color="inherit" underline="none" sx={{ color: '#B0B0B0', '&:hover': { color: '#00D1A3' } }}>
+                    <Typography variant="body2">{item}</Typography>
+                  </Link>
+                </ListItem>
+              ))}
+            </List>
+          </Grid>
+
+          <Grid item xs={6} md={2}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2, color: 'white' }}>
+              Company
+            </Typography>
+            <List disablePadding>
+              {['About', 'Careers', 'Contact', 'Partners', 'Legal'].map((item, index) => (
+                <ListItem key={index} disablePadding sx={{ mb: 1 }}>
+                  <Link href="#" color="inherit" underline="none" sx={{ color: '#B0B0B0', '&:hover': { color: '#00D1A3' } }}>
+                    <Typography variant="body2">{item}</Typography>
+                  </Link>
+                </ListItem>
+              ))}
+            </List>
+          </Grid>
         </Grid>
 
-        <Divider sx={{ my: 4, backgroundColor: 'gray' }} />
-
-        {/* Feedback Form */}
-        <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            Give Us Your Feedback
+        <Box sx={{ borderTop: '1px solid rgba(255,255,255,0.05)', mt: { xs: 4, md: 8 }, pt: { xs: 3, md: 4 }, textAlign: 'center' }}>
+          <Typography variant="body2" sx={{ color: '#B0B0B0' }}>
+            © 2025 Hostify. All rights reserved.
           </Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
-            <TextField
-              variant="outlined"
-              placeholder="Your feedback..."
-              sx={{ borderRadius: 1, flexGrow: 1 }}
-            />
-            <Button variant="contained" color="primary">Submit</Button>
-          </Stack>
+          <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center', gap: 3 }}>
+            <Link href="#" color="inherit" underline="hover" sx={{ color: '#B0B0B0' }}>Terms</Link>
+            <Link href="#" color="inherit" underline="hover" sx={{ color: '#B0B0B0' }}>Privacy</Link>
+            <Link href="#" color="inherit" underline="hover" sx={{ color: '#B0B0B0' }}>Cookies</Link>
+          </Box>
         </Box>
-
-        <Typography variant="body2" color="gray" align="center">
-          © {new Date().getFullYear()} CloudDeploy. All rights reserved.
-        </Typography>
       </Container>
     </Box>
   );
-};
+}
 
 export default Footer;
